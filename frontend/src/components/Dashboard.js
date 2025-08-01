@@ -92,7 +92,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Total Deployments</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.totalDeployments}</p>
+                <p className="text-2xl font-bold text-slate-900">{stats?.totalDeployments || 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <Rocket className="w-6 h-6 text-blue-600" />
@@ -106,7 +106,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Successful</p>
-                <p className="text-2xl font-bold text-green-600">{stats.successfulDeployments}</p>
+                <p className="text-2xl font-bold text-green-600">{stats?.successfulDeployments || 0}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -120,7 +120,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Failed</p>
-                <p className="text-2xl font-bold text-red-600">{stats.failedDeployments}</p>
+                <p className="text-2xl font-bold text-red-600">{stats?.failedDeployments || 0}</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                 <XCircle className="w-6 h-6 text-red-600" />
@@ -134,7 +134,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Avg Deploy Time</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.averageDeployTime}</p>
+                <p className="text-2xl font-bold text-slate-900">{stats?.averageDeployTime || '0s'}</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
