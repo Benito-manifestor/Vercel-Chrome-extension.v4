@@ -112,7 +112,8 @@ async def get_deployment_stats() -> dict:
                 "failed": {
                     "$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}
                 },
-                "avgDeployTime": {"$avg": "$deployTime"}
+                "avgDeployTime": {"$avg": "$deployTime"},
+                "uniqueProjects": {"$addToSet": "$projectName"}
             }
         }
     ]
@@ -121,16 +122,19 @@ async def get_deployment_stats() -> dict:
     
     if result:
         stats = result[0]
+        unique_projects = stats.get("uniqueProjects", [])
         return {
             "totalDeployments": stats.get("total", 0),
             "successfulDeployments": stats.get("successful", 0),
             "failedDeployments": stats.get("failed", 0),
-            "averageDeployTime": f"{int(stats.get('avgDeployTime', 35))}s"
+            "averageDeployTime": f"{int(stats.get('avgDeployTime', 35))}s",
+            "totalProjects": len(unique_projects)
         }
     else:
         return {
             "totalDeployments": 0,
             "successfulDeployments": 0, 
             "failedDeployments": 0,
-            "averageDeployTime": "0s"
+            "averageDeployTime": "0s",
+            "totalProjects": 0
         }
