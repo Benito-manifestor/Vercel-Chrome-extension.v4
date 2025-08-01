@@ -182,16 +182,19 @@ async def get_deployments(status: Optional[str] = None, limit: int = 50):
 
 @api_router.post("/deployments", response_model=Deployment)
 async def create_deployment(deployment_data: DeploymentCreate, background_tasks: BackgroundTasks):
-    """Create a new deployment"""
+    """Create a new deployment with improved error handling"""
     try:
         # Get settings for Vercel API token
         settings = await db.get_settings()
         if not settings or not settings.get("vercelApiToken"):
-            raise HTTPException(status_code=400, detail="Vercel API token not configured")
+            raise HTTPException(status_code=400, detail="Vercel API token not configured. Please update your settings.")
         
-        # Decrypt Vercel API token
-        vercel_token = crypto_service.decrypt(settings["vercelApiToken"])
-        vercel_service = VercelService(vercel_token)
+        try:
+            # Decrypt Vercel API token
+            vercel_token = crypto_service.decrypt(settings["vercelApiToken"])
+        except Exception as decrypt_error:
+            logger.error(f"Failed to decrypt Vercel token: {str(decrypt_error)}")
+            raise HTTPException(status_code=400, detail="Invalid Vercel API token. Please update your settings with a valid token.")
         
         # Create deployment object
         deployment = Deployment(
@@ -201,10 +204,18 @@ async def create_deployment(deployment_data: DeploymentCreate, background_tasks:
             status="building"
         )
         
-        # Save to database
+        # Save to database first
         await db.save_deployment(deployment.dict())
         
         try:
+            # Initialize Vercel service
+            vercel_service = VercelService(vercel_token)
+            
+            # Validate API token first
+            token_valid = await vercel_service.validate_api_token()
+            if not token_valid:
+                raise Exception("INVALID_API_TOKEN: The provided Vercel API token is invalid or expired")
+            
             # Create deployment on Vercel
             vercel_deployment = await vercel_service.create_deployment(
                 deployment_data.projectName,
@@ -238,21 +249,43 @@ async def create_deployment(deployment_data: DeploymentCreate, background_tasks:
             })
             
         except Exception as vercel_error:
-            # Update deployment status to failed
+            error_message = str(vercel_error)
+            
+            # Check if it's a known Vercel error
+            if any(code in error_message for code in [
+                'DEPLOYMENT_BLOCKED', 'DEPLOYMENT_NOT_FOUND', 'FUNCTION_INVOCATION_FAILED',
+                'INVALID_API_TOKEN', 'NOT_FOUND', 'DEPLOYMENT_DISABLED'
+            ]):
+                user_friendly_error = error_message
+            else:
+                user_friendly_error = f"Vercel deployment failed: {error_message}"
+            
+            # Update deployment status to failed with specific error
             await db.update_deployment_status(
                 deployment.id,
                 "failed",
-                error=str(vercel_error)
+                error=user_friendly_error
             )
+            
+            # Log error activity
+            await db.save_activity({
+                "id": f"act_{int(datetime.now().timestamp())}",
+                "type": "error",
+                "message": f"Deployment failed for {deployment_data.projectName}: {user_friendly_error}",
+                "status": "error",
+                "deploymentId": deployment.id,
+                "timestamp": datetime.utcnow()
+            })
+            
             deployment.status = "failed"
-            deployment.error = str(vercel_error)
+            deployment.error = user_friendly_error
         
         return deployment
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error creating deployment: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create deployment")
+        raise HTTPException(status_code=500, detail=f"Failed to create deployment: {str(e)}")
 
 # Stats and activity endpoints
 @api_router.get("/stats", response_model=Stats) 
