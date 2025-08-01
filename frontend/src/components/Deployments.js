@@ -15,7 +15,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { mockApiCalls } from '../mock';
+import { api } from '../services/api';
 
 const Deployments = () => {
   const [deployments, setDeployments] = useState([]);
