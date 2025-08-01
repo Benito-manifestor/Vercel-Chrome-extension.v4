@@ -123,11 +123,14 @@ async def get_deployment_stats() -> dict:
     if result:
         stats = result[0]
         unique_projects = stats.get("uniqueProjects", [])
+        avg_time = stats.get('avgDeployTime')
+        avg_time_str = f"{int(avg_time)}s" if avg_time is not None else "0s"
+        
         return {
             "totalDeployments": stats.get("total", 0),
             "successfulDeployments": stats.get("successful", 0),
             "failedDeployments": stats.get("failed", 0),
-            "averageDeployTime": f"{int(stats.get('avgDeployTime', 35))}s",
+            "averageDeployTime": avg_time_str,
             "totalProjects": len(unique_projects)
         }
     else:
