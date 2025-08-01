@@ -27,7 +27,7 @@ const Settings = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const data = await mockApiCalls.getSettings();
+        const data = await api.settings.get();
         setSettings(data);
       } catch (error) {
         console.error('Failed to load settings:', error);
