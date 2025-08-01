@@ -47,7 +47,7 @@ const Settings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await mockApiCalls.updateSettings(settings);
+      await api.settings.update(settings);
       toast({
         title: "Success",
         description: "Settings saved successfully",
