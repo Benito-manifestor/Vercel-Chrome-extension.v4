@@ -27,7 +27,7 @@ const Deployments = () => {
   useEffect(() => {
     const loadDeployments = async () => {
       try {
-        const data = await mockApiCalls.getDeployments();
+        const data = await api.deployments.list();
         setDeployments(data);
         setFilteredDeployments(data);
       } catch (error) {
