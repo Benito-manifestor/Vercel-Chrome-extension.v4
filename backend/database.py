@@ -67,7 +67,7 @@ async def update_deployment_status(deployment_id: str, status: str, vercel_url: 
     """Update deployment status"""
     update_data = {
         "status": status,
-        "updatedAt": "utcnow()"
+        "updatedAt": datetime.utcnow()
     }
     
     if vercel_url:
