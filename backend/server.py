@@ -380,6 +380,18 @@ async def download_extension():
         logger.error(f"Error creating extension zip: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create extension download")
 
+# Error codes reference endpoint  
+@api_router.get("/error-codes")
+async def get_vercel_error_codes():
+    """Get list of supported Vercel error codes and their meanings"""
+    from services.vercel_service import VERCEL_ERROR_CODES
+    
+    return {
+        "description": "Vercel error codes and their user-friendly meanings",
+        "total_codes": len(VERCEL_ERROR_CODES),
+        "error_codes": VERCEL_ERROR_CODES
+    }
+
 # Health check
 @api_router.get("/")
 async def root():
