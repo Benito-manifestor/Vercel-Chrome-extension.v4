@@ -275,6 +275,37 @@ async def get_activity(limit: int = 10):
         logger.error(f"Error getting activity: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve activity logs")
 
+# Extension download endpoint
+@api_router.get("/extension/download")
+async def download_extension():
+    """Download Chrome extension as zip file"""
+    import zipfile
+    import tempfile
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    
+    try:
+        # Create temporary zip file
+        temp_dir = tempfile.mkdtemp()
+        zip_path = Path(temp_dir) / "emergent-deploy-extension.zip"
+        extension_dir = Path(__file__).parent.parent / "chrome-extension"
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Add all extension files to zip
+            for file_path in extension_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(extension_dir)
+                    zip_file.write(file_path, arcname)
+        
+        return FileResponse(
+            zip_path, 
+            filename="emergent-deploy-extension.zip",
+            media_type="application/zip"
+        )
+    except Exception as e:
+        logger.error(f"Error creating extension zip: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create extension download")
+
 # Health check
 @api_router.get("/")
 async def root():
