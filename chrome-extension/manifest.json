@@ -6,11 +6,13 @@
   "permissions": [
     "activeTab",
     "storage",
-    "host"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://app.emergent.sh/*",
-    "https://api.vercel.com/*"
+    "https://api.vercel.com/*",
+    "https://e90ba4ca-1a64-44f0-a4a6-544110e7c91a.preview.emergentagent.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -38,7 +40,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "inject.js"],
+      "resources": ["icons/*"],
       "matches": ["https://app.emergent.sh/*"]
     }
   ]
