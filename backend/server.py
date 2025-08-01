@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # Background task to update deployment status
 async def update_deployment_status_task(deployment_id: str, vercel_deployment_id: str):
-    """Background task to monitor deployment status"""
+    """Background task to monitor deployment status with improved error handling"""
     try:
         # Get settings to retrieve Vercel API token
         settings = await db.get_settings()
@@ -44,8 +44,18 @@ async def update_deployment_status_task(deployment_id: str, vercel_deployment_id
             logger.error("No settings found for deployment status update")
             return
         
-        # Decrypt Vercel API token
-        vercel_token = crypto_service.decrypt(settings["vercelApiToken"])
+        try:
+            # Decrypt Vercel API token
+            vercel_token = crypto_service.decrypt(settings["vercelApiToken"])
+        except Exception as decrypt_error:
+            logger.error(f"Failed to decrypt Vercel token in background task: {str(decrypt_error)}")
+            await db.update_deployment_status(
+                deployment_id,
+                "failed",
+                error="Invalid Vercel API token configuration"
+            )
+            return
+        
         vercel_service = VercelService(vercel_token)
         
         # Poll deployment status
@@ -59,6 +69,9 @@ async def update_deployment_status_task(deployment_id: str, vercel_deployment_id
                 internal_status = status_vercel_to_internal(vercel_status)
                 
                 if internal_status == "deployed":
+                    # Calculate deploy time
+                    deploy_time = calculate_deploy_time(datetime.utcnow() - timedelta(seconds=(attempt + 1) * 10))
+                    
                     # Deployment successful
                     await db.update_deployment_status(
                         deployment_id, 
@@ -70,7 +83,7 @@ async def update_deployment_status_task(deployment_id: str, vercel_deployment_id
                     await db.save_activity({
                         "id": f"act_{int(datetime.now().timestamp())}",
                         "type": "deployment",
-                        "message": f"Deployment {deployment_id} completed successfully",
+                        "message": f"Deployment {deployment_id} completed successfully in {deploy_time}",
                         "status": "success",
                         "deploymentId": deployment_id,
                         "timestamp": datetime.utcnow()
@@ -78,18 +91,22 @@ async def update_deployment_status_task(deployment_id: str, vercel_deployment_id
                     break
                     
                 elif internal_status == "failed":
+                    # Get error details if available
+                    error_info = deployment_status.get("error", {})
+                    error_message = error_info.get("message", "Deployment failed on Vercel")
+                    
                     # Deployment failed
                     await db.update_deployment_status(
                         deployment_id,
                         "failed",
-                        error="Deployment failed on Vercel"
+                        error=error_message
                     )
                     
                     # Log activity
                     await db.save_activity({
                         "id": f"act_{int(datetime.now().timestamp())}",
                         "type": "error", 
-                        "message": f"Deployment {deployment_id} failed",
+                        "message": f"Deployment {deployment_id} failed: {error_message}",
                         "status": "error",
                         "deploymentId": deployment_id,
                         "timestamp": datetime.utcnow()
@@ -97,18 +114,42 @@ async def update_deployment_status_task(deployment_id: str, vercel_deployment_id
                     break
                     
             except Exception as e:
-                logger.error(f"Error checking deployment status: {str(e)}")
+                logger.error(f"Error checking deployment status (attempt {attempt + 1}): {str(e)}")
+                # Continue to next attempt unless it's the last one
+                if attempt == max_attempts - 1:
+                    await db.update_deployment_status(
+                        deployment_id,
+                        "failed", 
+                        error=f"Failed to check deployment status: {str(e)}"
+                    )
                 
         else:
             # Max attempts reached, mark as failed
             await db.update_deployment_status(
                 deployment_id,
                 "failed", 
-                error="Deployment timeout"
+                error="Deployment timeout - status check exceeded maximum attempts"
             )
             
+            await db.save_activity({
+                "id": f"act_{int(datetime.now().timestamp())}",
+                "type": "error",
+                "message": f"Deployment {deployment_id} timed out",
+                "status": "error", 
+                "deploymentId": deployment_id,
+                "timestamp": datetime.utcnow()
+            })
+            
     except Exception as e:
-        logger.error(f"Error in deployment status update task: {str(e)}")
+        logger.error(f"Critical error in deployment status update task: {str(e)}")
+        try:
+            await db.update_deployment_status(
+                deployment_id,
+                "failed",
+                error=f"Background task failed: {str(e)}"
+            )
+        except Exception as db_error:
+            logger.error(f"Failed to update deployment status after task error: {str(db_error)}")
 
 # Settings endpoints
 @api_router.get("/settings", response_model=Settings)
