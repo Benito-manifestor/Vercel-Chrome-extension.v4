@@ -24,9 +24,9 @@ const Dashboard = () => {
     const loadDashboardData = async () => {
       try {
         const [statsData, activityData, deploymentsData] = await Promise.all([
-          mockApiCalls.getStats(),
-          mockApiCalls.getRecentActivity(),
-          mockApiCalls.getDeployments()
+          api.stats.get(),
+          api.activity.get(),
+          api.deployments.list()
         ]);
         
         setStats(statsData);
