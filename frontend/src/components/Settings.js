@@ -16,7 +16,7 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useToast } from '../hooks/use-toast';
-import { mockApiCalls } from '../mock';
+import { api } from '../services/api';
 
 const Settings = () => {
   const [settings, setSettings] = useState(null);
