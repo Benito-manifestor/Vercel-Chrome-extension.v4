@@ -6,6 +6,7 @@ import Settings from "./components/Settings";
 import Deployments from "./components/Deployments";
 import Extension from "./components/Extension";
 import Navigation from "./components/Navigation";
+import { Toaster } from "./components/ui/toaster";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             </Routes>
           </main>
         </div>
+        <Toaster />
       </BrowserRouter>
     </div>
   );
