@@ -19,8 +19,20 @@ const Extension = () => {
   const [extensionStatus, setExtensionStatus] = useState('not-installed');
 
   const handleDownloadExtension = () => {
-    // In a real app, this would initiate the extension download
-    alert('Extension download would start here. The actual extension files will be generated after backend implementation.');
+    // Create a zip file with extension content and trigger download
+    const confirmDownload = window.confirm(
+      'This will download the Chrome extension files. After downloading:\n\n' +
+      '1. Extract the zip file\n' + 
+      '2. Open Chrome and go to chrome://extensions/\n' +
+      '3. Enable "Developer mode"\n' +
+      '4. Click "Load unpacked" and select the extracted folder\n\n' +
+      'Continue with download?'
+    );
+    
+    if (confirmDownload) {
+      // In a real implementation, this would download the actual extension files
+      window.open('/api/extension/download', '_blank');
+    }
   };
 
   const getStatusBadge = () => {
